@@ -1,14 +1,11 @@
 from typing import List, Tuple
 
 import spacy 
-from spacy.symbols import conj, nsubj, NOUN, AUX
+from spacy.symbols import appos, conj, nsubj, NOUN, AUX
+
+from tools import peek
 
 nlp = spacy.load("en_core_web_sm")
-
-def_words_file = open("def_words.txt", 'w', encoding='utf-8')
-def_phrases_file = open("def_phrases.txt", 'w', encoding='utf-8')
-def_file = open("def_file.txt", 'w', encoding='utf-8')
-
 
 def head_aux(subject_chunk, chunk):
     """
@@ -43,18 +40,28 @@ def root_noun_conj(current_chunk, def_chunks):
     return None
 
 
-def subject_chunk_by_title(title, chunk):
+def compare_texts(text1, text2):
+    # TODO Update method using some similarity criterion
+    return text1.lower() in text2.lower() or \
+            text2.lower() in text1.lower()
+
+
+def subject_chunk_by_title(title, chunk, previous_chunks):
     """
     Compares current chunk text and an article title
-    # TODO Update method using some similarity criterion
     :return: chunk if subject_chunk, None otherwise
     """
-    if title.lower() in chunk.text.lower() or \
-            chunk.text.lower() in title.lower():
-       
+    if chunk.root.dep == nsubj and compare_texts(title, chunk.text):
         return chunk
 
-    return None
+    # e.g. "Actresses (Catalan: Actrius)", "Actrius" - title, "Actresses" - nsubj. 
+    # Actrius appos Catalan
+    # Catalan appos Actresses
+    subject_chunk = chunk if compare_texts(title, chunk.text) else None 
+    while subject_chunk and subject_chunk.root.dep == appos:
+        subject_chunk = peek(_chunk for _chunk in previous_chunks if subject_chunk.root.head == _chunk.root)
+
+    return subject_chunk
 
 
 def get_definitions(title, text):
@@ -66,7 +73,8 @@ def get_definitions(title, text):
     doc = nlp(text)
     # subject_doc = nlp(subject) # to get nsubj
     
-    subject_chunk = None
+    subject_chunk = None # chunk that contain nsubj
+    previous_chunks = [] # chunks that will be processed until subject_chunk is not found
     def_chunks = []
     def_phrases = []
     def_words = []
@@ -76,7 +84,9 @@ def get_definitions(title, text):
         processed_chunk = None
 
         if not subject_chunk:
-            subject_chunk = subject_chunk_by_title(title, chunk)
+            subject_chunk = subject_chunk_by_title(title, chunk, previous_chunks)
+            previous_chunks.append(chunk)
+            continue
 
         result = head_aux(subject_chunk, chunk)
         if result:
