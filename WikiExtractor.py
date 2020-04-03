@@ -1336,11 +1336,7 @@ def clean(text):
     # Matches also: [[Help:IPA for Spanish|[a'ðoβe]]]
     for s,e in findBalanced(text, ['[[', '['], [']]', ']']):
         m = tailRE.match(text, e)
-        if m:
-            trail = m.group(0)
-            e = m.end()
-        else:
-            trail = ''
+        trail = m.group(0) if m else ''
         res += text[cur:s] + make_anchor_tag(text[s:e], trail)
         cur = e
     text = res + text[cur:]
