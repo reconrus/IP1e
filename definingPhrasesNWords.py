@@ -3,7 +3,7 @@ from typing import List, Tuple
 import spacy 
 from spacy.symbols import appos, conj, nsubj, NOUN, AUX
 
-from tools import peek
+from tools import peek, compare_texts
 
 nlp = spacy.load("en_core_web_sm")
 
@@ -38,12 +38,6 @@ def root_noun_conj(current_chunk, def_chunks):
         return current_chunk
 
     return None
-
-
-def compare_texts(text1, text2):
-    # TODO Update method using some similarity criterion
-    return text1.lower() in text2.lower() or \
-            text2.lower() in text1.lower()
 
 
 def subject_chunk_by_title(title, chunk, previous_chunks):
