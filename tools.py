@@ -1,8 +1,10 @@
 from nltk.tokenize import word_tokenize
+from fuzzywuzzy import fuzz
+
+THRESHOLD = 0.6
 
 
 def compare_texts(text1, text2):
-    # TODO Update method using some similarity criterion
     tl1 = text1.lower()
     tl2 = text2.lower()
 
@@ -12,8 +14,14 @@ def compare_texts(text1, text2):
     ts1 = word_tokenize(tl1)
     ts2 = word_tokenize(tl2)
 
-    return all([True if token in ts2 else False for token in ts1 ]) or \
-           all([True if token in ts1 else False for token in ts2 ])  
+    if all([True if token in ts2 else False for token in ts1 ]) or \
+           all([True if token in ts1 else False for token in ts2 ]):
+        return True
+
+    if fuzz.token_sort_ratio(tl1, tl2) > THRESHOLD:
+        return True
+    
+    return False
            
 
 def peek(iterable):
