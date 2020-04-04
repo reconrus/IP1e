@@ -1,4 +1,4 @@
-import argparse 
+import argparse
 import codecs
 import csv
 import os
@@ -27,6 +27,9 @@ def strip_tag_name(t):
         t = t[idx + 1:]
     return t
 
+def delete_comments(text):
+    return re.sub(re.compile(r"<!--[\S\s]*?-->"), "", text)
+
 def clean(text):
     text = text.strip().replace('&quot;', '')
     return text.replace('&quot', '')
@@ -51,7 +54,8 @@ for event, elem in etree.iterparse(input_file, events=('start', 'end')):
     elif tname == 'page':
         total_processed += 1
         if not skip_section:
-            result =  en.getData(text_el.text, title_el.text)
+            text = delete_comments(text_el.text)
+            result =  en.getData(text, title_el.text)
             if not result[0]: # if type of article is empty (not disambiguation or redirect)  
                 first_sentence = clean(result[1])
                 phrases, words = get_definitions(title_el.text, first_sentence)
