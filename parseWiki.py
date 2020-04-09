@@ -51,6 +51,8 @@ for event, elem in etree.iterparse(input_file, events=('start', 'end')):
             text_el = elem
         elif tname == 'redirect':
             skip_section = True
+        elif tname == 'ns' and elem.text != '0':
+            skip_section = True
     elif tname == 'page':
         total_processed += 1
         if not skip_section:
@@ -61,7 +63,7 @@ for event, elem in etree.iterparse(input_file, events=('start', 'end')):
                 phrases, words = get_definitions(title_el.text, first_sentence)
                 tsv_writer.writerow([title_el.text, ts_el.text, first_sentence, phrases, words])
         if total_processed > 1 and (total_processed % 10) == 0:
-            print("\r{:,}".format(total_processed), end='')  
+            print("\r{:,}".format(total_processed), end='')
 
         skip_section = False       
         clear = True
