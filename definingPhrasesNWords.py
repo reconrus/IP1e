@@ -83,7 +83,46 @@ class DefiningPhrases:
             return chunk
         
         return None
-            
+
+
+def get_phrases_next_to_title(title, doc):
+    """
+    For such cases when title is not part of noun chunks
+    E.g. "!!! is an American dance-punk band that formed in Sacramento..." 
+    Where "an American dance-punk band" can be easily detected as defining phrase,
+    but "!!!" is not part of any chunk 
+    """
+    AUX_tokens = [token for token in doc if token.pos == AUX]
+    if not AUX_tokens:
+        return None
+    
+    first_AUX = AUX_tokens[0]
+    text_before_first_AUX = [token.text for token in doc if token.i < first_AUX.i]
+    text_before_first_AUX = ' '.join(text_before_first_AUX)
+    if not compare_texts(title, text_before_first_AUX):
+        return None
+
+    def_chunks = []
+    def_phrases = []
+    def_words = []
+    
+    for chunk in doc.noun_chunks:
+        processed_chunk = None
+        if chunk.root.head == first_AUX:
+            processed_chunk = chunk
+
+        if not processed_chunk: 
+            processed_chunk = DefiningPhrases.root_noun_conj(chunk, def_chunks)
+
+        if not processed_chunk:
+            continue
+
+        def_chunks.append(processed_chunk)        
+        def_phrases.append(processed_chunk.text)
+        def_words.append(processed_chunk.root.text)
+    
+    return def_phrases, def_words
+
 
 def clean(text):
     """
@@ -129,10 +168,15 @@ def get_definitions(title, text):
             processed_chunk = DefiningPhrases.subject_chunk_verb_ccomp(subject_chunk, chunk)
 
         if not processed_chunk:
-            continue 
+            continue
 
         def_phrases.append(processed_chunk.text)
         def_words.append(processed_chunk.root.text)
         def_chunks.append(processed_chunk)
+
+    if not subject_chunk:
+        result = get_phrases_next_to_title(title, doc)
+        if result:
+            def_phrases, def_words = result
 
     return def_phrases, def_words

@@ -5,6 +5,9 @@ THRESHOLD = 0.6
 
 
 def compare_texts(text1, text2):
+    """
+    :return: True if text1 is similar to text2, False otherwise
+    """
     tl1 = text1.lower()
     tl2 = text2.lower()
 
