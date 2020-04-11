@@ -1,8 +1,10 @@
 import argparse
 import datetime
+import glob
 import json
 import multiprocessing as mp
 import os
+import shutil
 import time
 
 from hurry.filesize import size
@@ -28,7 +30,8 @@ def process_line(json_line, log_folder):
     shortened_entity = {
         'id': entity['id'],
         'instanceof': [],
-        'subclassof': []}
+        'subclassof': []
+        }
 
     try:
         shortened_entity['title'] = entity['sitelinks']['enwiki']['title']
@@ -49,17 +52,18 @@ def process_line(json_line, log_folder):
             except KeyError as e:
                 key_error_handle(entity, e, log_folder)
 
-    return '%s,\n' % str(shortened_entity)
+    return '%s,\n' % json.dumps(shortened_entity)
 
 
-def process_chunk(chunk, input_file, output_folder, jobID):
+def process_chunk(chunk, input_file, output_folder, jobID, encoding):
     processed_lines = []
     for line in Chunker.parse(Chunker.read(input_file, chunk)):
-        processed_lines.append(process_line(line, output_folder))
+        processed_line = process_line(line, output_folder)
+        processed_lines.append(processed_line)
 
     file_path = os.path.join(output_folder, 'processed_wikidata_%d' % mp.current_process().pid)
     
-    with open(file_path, 'a+', encoding='utf-8') as f:
+    with open(file_path, 'a+', encoding=encoding) as f:
         f.writelines(processed_lines)
 
     print("Processed chunk #%d" % (jobID+1))
@@ -84,7 +88,7 @@ if __name__=="__main__":
     start_time = time.time()
     print("Chunks of size %s" % size(args.chunk_size), file=logs_file)
     for jobID,chunk in enumerate(Chunker.chunkify(args.input, size=args.chunk_size)):
-        job = pool.apply_async(process_chunk,(chunk,args.input,args.output, jobID))
+        job = pool.apply_async(process_chunk,(chunk,args.input,args.output, jobID, args.encoding))
         jobs.append(job)
 
     output = []
@@ -96,3 +100,14 @@ if __name__=="__main__":
     print("Total # of chunks: %d" % (jobID+1), file=logs_file)
     print("Total time: {}".format(datetime.timedelta(seconds=time.time() - start_time)), file=logs_file)
     logs_file.close()
+
+    filenames_pattern = os.path.join(args.output, "processed_*")
+    outfilename = os.path.join(args.output, "processed_wikidata_all.json")
+    with open(outfilename, 'w+', encoding=args.encoding) as outfile:
+        outfile.write('[\n')
+        for filename in glob.glob(filenames_pattern):
+            if filename == outfilename:
+                continue
+            with open(filename, 'r', encoding=args.encoding) as readfile:
+                shutil.copyfileobj(readfile, outfile)
+        outfile.write(']')
