@@ -104,9 +104,7 @@ def get_phrases_next_to_title(title, doc):
         return None
 
     def_chunks = []
-    def_phrases = []
-    def_words = []
-    
+
     for chunk in doc.noun_chunks:
         processed_chunk = None
         if chunk.root.head == first_AUX:
@@ -119,10 +117,8 @@ def get_phrases_next_to_title(title, doc):
             continue
 
         def_chunks.append(processed_chunk)        
-        def_phrases.append(processed_chunk.text)
-        def_words.append(processed_chunk.root.text)
     
-    return def_phrases, def_words
+    return def_chunks
 
 
 # TODO come up with name
@@ -146,8 +142,6 @@ def get_phrases_(title, doc):
         return None
 
     def_chunks = []
-    def_phrases = []
-    def_words = []
 
     AUX_token = None
 
@@ -169,10 +163,8 @@ def get_phrases_(title, doc):
             continue
 
         def_chunks.append(processed_chunk)        
-        def_phrases.append(processed_chunk.text)
-        def_words.append(processed_chunk.root.text)
 
-    return def_phrases, def_words
+    return def_chunks
 
 
 def clean(text):
@@ -196,8 +188,6 @@ def get_definitions(title, text):
     subject_chunk = None # chunk that contain nsubj
     previous_chunks = [] # chunks that will be processed until subject_chunk is not found
     def_chunks = []
-    def_phrases = []
-    def_words = []
 
     # Assumes that subject chunk is the first
     for chunk in doc.noun_chunks:
@@ -221,18 +211,18 @@ def get_definitions(title, text):
         if not processed_chunk:
             continue
 
-        def_phrases.append(processed_chunk.text)
-        def_words.append(processed_chunk.root.text)
         def_chunks.append(processed_chunk)
 
-    if not subject_chunk:
-        result = get_phrases_next_to_title(title, doc)
-        if result:
-            def_phrases, def_words = result
+    if not def_chunks:
+        def_chunks = get_phrases_next_to_title(title, doc)
+        
+    if not def_chunks:
+        def_chunks = get_phrases_(title, doc)
+        
+    if not def_chunks:
+        return [], []
 
-    if not def_phrases:
-        result = get_phrases_(title, doc)
-        if result:
-            def_phrases, def_words = result
+    defs = [(chunk.text, chunk.root.text) for chunk in def_chunks if len(chunk.text) > 1]
+    def_phrases, def_words = zip(*defs)
 
-    return def_phrases, def_words
+    return list(def_phrases), list(def_words)
