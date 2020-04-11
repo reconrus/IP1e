@@ -85,44 +85,58 @@ class DefiningPhrases:
         
         return None
 
+    
+    @classmethod
+    def get_chunks_connected_to_AUX_excluding_subject(cls, doc, AUX_token, subject_text): 
+        def_chunks = []
 
-def get_phrases_next_to_title(title, doc):
+        for chunk in doc.noun_chunks:
+            processed_chunk = None
+
+            # so the subject text would not be included to results
+            if compare_texts(chunk.root.text, subject_text):
+                continue
+
+            if chunk.root.head == AUX_token:
+                processed_chunk = chunk
+
+            if not processed_chunk: 
+                processed_chunk = DefiningPhrases.root_noun_conj(chunk, def_chunks)
+
+            if not processed_chunk:
+                continue
+
+            def_chunks.append(processed_chunk) 
+
+        return def_chunks
+
+
+def get_definitions_for_the_phrase_before_first_AUX(doc):
     """
     For such cases when title is not part of noun chunks and after the title goes AUX
     E.g. "!!! is an American dance-punk band that formed in Sacramento..." 
     Where "an American dance-punk band" can be easily detected as defining phrase,
     but "!!!" is not part of any noun chunk 
+
+    Or for the cases when title of the article is not in the first sentence. 
+    E.g. '"As the Old Sing, So Pipe the Young" (Jan Steen)' is the title
+    and the first sentence:
+        "Soo voer gesongen, soo na gepepen is a c.1668–1670 oil-on-canvas painting..."
     """
     AUX_tokens = [token for token in doc if token.pos == AUX]
     if not AUX_tokens:
-        return None
+        return []
     
     first_AUX = AUX_tokens[0]
     text_before_first_AUX = [token.text for token in doc if token.i < first_AUX.i]
     text_before_first_AUX = ' '.join(text_before_first_AUX)
-    if not compare_texts(title, text_before_first_AUX):
-        return None
-
-    def_chunks = []
-
-    for chunk in doc.noun_chunks:
-        processed_chunk = None
-        if chunk.root.head == first_AUX:
-            processed_chunk = chunk
-
-        if not processed_chunk: 
-            processed_chunk = DefiningPhrases.root_noun_conj(chunk, def_chunks)
-
-        if not processed_chunk:
-            continue
-
-        def_chunks.append(processed_chunk)        
+    
+    def_chunks = DefiningPhrases.get_chunks_connected_to_AUX_excluding_subject(doc, first_AUX, text_before_first_AUX)
     
     return def_chunks
 
 
-# TODO come up with name
-def get_phrases_(title, doc):
+def get_phrases_if_title_not_in_noun_chunk(title, doc):
     """
     For such cases when title is not part of noun chunks and 
     somewhere in the text AUX is connected to one of the title words
@@ -139,9 +153,7 @@ def get_phrases_(title, doc):
 
     subject_slice = get_similar_substring_slice(title, doc)
     if not subject_slice:
-        return None
-
-    def_chunks = []
+        return []
 
     AUX_token = None
 
@@ -150,19 +162,10 @@ def get_phrases_(title, doc):
             AUX_token = token.head
             break
 
+    if not AUX_token:
+        return []
 
-    for chunk in doc.noun_chunks:
-        processed_chunk = None
-        if chunk.root.head == AUX_token:
-            processed_chunk = chunk
-
-        if not processed_chunk: 
-            processed_chunk = DefiningPhrases.root_noun_conj(chunk, def_chunks)
-
-        if not processed_chunk:
-            continue
-
-        def_chunks.append(processed_chunk)        
+    def_chunks = DefiningPhrases.get_chunks_connected_to_AUX_excluding_subject(doc, AUX_token, subject_slice.text)
 
     return def_chunks
 
@@ -171,7 +174,7 @@ def clean(text):
     """
     Deletes brackets and their content
     """
-    text = re.sub(re.compile(r"\([\S\s]*?\)"), "", text)
+    # text = re.sub(re.compile(r"\([\S\s]*?\)"), "", text)
     text = re.sub(re.compile(r'\s{2,}'), ' ', text)
     return text
 
@@ -214,15 +217,17 @@ def get_definitions(title, text):
         def_chunks.append(processed_chunk)
 
     if not def_chunks:
-        def_chunks = get_phrases_next_to_title(title, doc)
-        
+        def_chunks = get_phrases_if_title_not_in_noun_chunk(title, doc)
+
     if not def_chunks:
-        def_chunks = get_phrases_(title, doc)
-        
-    if not def_chunks:
+        def_chunks = get_definitions_for_the_phrase_before_first_AUX(doc)
+
+    defs = [(chunk.text, chunk.root.text) for chunk in def_chunks  \
+            if len(chunk.text) > 1 and not compare_texts(chunk.text, title)]
+    
+    if not defs:
         return [], []
 
-    defs = [(chunk.text, chunk.root.text) for chunk in def_chunks if len(chunk.text) > 1]
-    def_phrases, def_words = zip(*defs)
+    def_phrases, def_words = list(zip(*defs))
 
     return list(def_phrases), list(def_words)
