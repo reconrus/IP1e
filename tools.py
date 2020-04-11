@@ -1,10 +1,9 @@
 from nltk.tokenize import word_tokenize
-from fuzzywuzzy import fuzz
+from fuzzywuzzy import fuzz, process
 
 THRESHOLD = 0.6
 
-
-def compare_texts(text1, text2):
+def compare_texts(text1, text2, levenstein_threshold=THRESHOLD):
     """
     :return: True if text1 is similar to text2, False otherwise
     """
@@ -21,15 +20,26 @@ def compare_texts(text1, text2):
            all([True if token in ts1 else False for token in ts2 ]):
         return True
 
-    if fuzz.token_sort_ratio(tl1, tl2) > THRESHOLD:
+    if fuzz.token_sort_ratio(tl1, tl2) > levenstein_threshold:
         return True
     
     return False
            
 
 def peek(iterable):
-    try:
-        first = next(iterable)
-    except StopIteration:
+    return next(iterable, None)
+
+
+def get_similar_substring_slice(string2match, doc):
+    """
+    :param string2match: string for which the most similar substring is sought
+    :param doc: spaCy Doc object where the search is going on
+    """ 
+    n = len(word_tokenize(string2match)) + 3 # how many tokens may be in the substring 
+    substring_slices = [doc[start:start + i] for i in range(1, n) for start in range(1, len(doc)-i)]
+    substrings = [substring_doc.text for substring_doc in substring_slices]
+    most_similar = process.extractOne(string2match, substrings, score_cutoff=THRESHOLD)
+    if not most_similar:
         return None
-    return first
+        
+    return peek((slice_ for slice_ in substring_slices if slice_.text == most_similar[0]))

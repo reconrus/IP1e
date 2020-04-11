@@ -6,7 +6,8 @@ from spacy.symbols import appos, conj, ccomp, \
                           nsubj, \
                           AUX, NOUN 
 
-from tools import peek, compare_texts
+from tools import compare_texts, get_similar_substring_slice, \
+                  peek
 
 nlp = spacy.load("en_core_web_sm")
 
@@ -87,10 +88,10 @@ class DefiningPhrases:
 
 def get_phrases_next_to_title(title, doc):
     """
-    For such cases when title is not part of noun chunks
+    For such cases when title is not part of noun chunks and after the title goes AUX
     E.g. "!!! is an American dance-punk band that formed in Sacramento..." 
     Where "an American dance-punk band" can be easily detected as defining phrase,
-    but "!!!" is not part of any chunk 
+    but "!!!" is not part of any noun chunk 
     """
     AUX_tokens = [token for token in doc if token.pos == AUX]
     if not AUX_tokens:
@@ -121,6 +122,56 @@ def get_phrases_next_to_title(title, doc):
         def_phrases.append(processed_chunk.text)
         def_words.append(processed_chunk.root.text)
     
+    return def_phrases, def_words
+
+
+# TODO come up with name
+def get_phrases_(title, doc):
+    """
+    For such cases when title is not part of noun chunks and 
+    somewhere in the text AUX is connected to one of the title words
+    E.g. "!PAUS3, or THEE PAUSE, (born in Philadelphia, Pennsylvania),
+          now located in the New York City area, is an international platinum selling musician..." 
+
+    Where "an international platinum selling musician" can be easily detected as defining phrase,
+    but "!PAUS3" is not part of any noun chunk 
+
+    This method is looks like more general version of get_phrases_next_to_title.
+    But I left both of them since tests showed results, where this method does not work while 
+    get_phrases_next_to_title does 
+    """
+
+    subject_slice = get_similar_substring_slice(title, doc)
+    if not subject_slice:
+        return None
+
+    def_chunks = []
+    def_phrases = []
+    def_words = []
+
+    AUX_token = None
+
+    for token in subject_slice:
+        if token.head.pos == AUX:
+            AUX_token = token.head
+            break
+
+
+    for chunk in doc.noun_chunks:
+        processed_chunk = None
+        if chunk.root.head == AUX_token:
+            processed_chunk = chunk
+
+        if not processed_chunk: 
+            processed_chunk = DefiningPhrases.root_noun_conj(chunk, def_chunks)
+
+        if not processed_chunk:
+            continue
+
+        def_chunks.append(processed_chunk)        
+        def_phrases.append(processed_chunk.text)
+        def_words.append(processed_chunk.root.text)
+
     return def_phrases, def_words
 
 
@@ -176,6 +227,11 @@ def get_definitions(title, text):
 
     if not subject_chunk:
         result = get_phrases_next_to_title(title, doc)
+        if result:
+            def_phrases, def_words = result
+
+    if not def_phrases:
+        result = get_phrases_(title, doc)
         if result:
             def_phrases, def_words = result
 
