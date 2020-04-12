@@ -8,6 +8,7 @@ import shutil
 import time
 
 from hurry.filesize import size
+from tqdm import tqdm
 
 from Chunker import Chunker
 
@@ -105,10 +106,10 @@ if __name__=="__main__":
     outfilename = os.path.join(args.output, "processed_wikidata_all.json")
     with open(outfilename, 'w+', encoding=args.encoding) as outfile:
         outfile.write('[\n')
-        for filename in glob.glob(filenames_pattern):
+        for filename in tqdm(glob.glob(filenames_pattern), desc="Merge files to one"):
             if filename == outfilename:
                 continue
             with open(filename, 'r', encoding=args.encoding) as readfile:
                 shutil.copyfileobj(readfile, outfile)
-        outfile.seek(outfile.tell() - 3, os.SEEK_SET) # delete last excess comma
+        outfile.seek(outfile.tell() - 2, os.SEEK_SET) # delete last excess comma
         outfile.write('\n]')
