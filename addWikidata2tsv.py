@@ -1,7 +1,7 @@
 import argparse
 import csv
 
-import pandas
+import pandas as pd
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
@@ -15,8 +15,8 @@ if __name__=="__main__":
     wikidata_file = open(args.wd_input, 'r', encoding=args.encoding)
     tsv_input_file = open(args.tsv_input, 'r', encoding=args.encoding)
 
-    wikidata = pandas.read_json(wikidata_file, orient='records', encoding=args.encoding)
-    inptsv = pandas.read_csv(tsv_input_file, sep=args.delimiter)
+    wikidata = pd.read_json(wikidata_file, orient='records', encoding=args.encoding)
+    inptsv = pd.read_csv(tsv_input_file, sep=args.delimiter)
 
     wikidata_new = wikidata.set_index('id')
     mapping = wikidata_new['title']
@@ -29,8 +29,8 @@ if __name__=="__main__":
     wd2merge = wikidata[['title', 'instanceoftitle', 'subclassoftitle']]
     wd2merge = wd2merge.rename(columns={"instanceoftitle": "instanceof", "subclassoftitle": "subclassof"})
 
-    outtsv = pandas.merge(inptsv, wd2merge, on='title')
-    outtsv.to_csv(args.output, sep=args.delimiter, header=True, encoding=args.encoding)
+    outtsv = pd.merge(inptsv, wd2merge, on='title')
+    outtsv.to_csv(args.output, sep=args.delimiter, header=True, index=False, encoding=args.encoding)
 
     wikidata_file.close()
     tsv_input_file.close()
