@@ -110,4 +110,5 @@ if __name__=="__main__":
                 continue
             with open(filename, 'r', encoding=args.encoding) as readfile:
                 shutil.copyfileobj(readfile, outfile)
-        outfile.write(']')
+        outfile.seek(outfile.tell() - 3, os.SEEK_SET) # delete last excess comma
+        outfile.write('\n]')
