@@ -20,13 +20,15 @@ def main():
     parser.add_argument("-o", help = "path to output TSV file", dest = "output")
     parser.add_argument("-c", help = "encoding standard", dest = "encoding", default="utf-8")
     parser.add_argument("-l", help = "language of the dump", dest = "lang", default="en")
+    parser.add_argument("-d", help = "delimiter for tsv", dest = "delimiter", default="\t")
+    
     args = parser.parse_args()
 
     input_file = codecs.open(args.input, 'r', args.encoding)
     output_file = codecs.open(args.output,'w', args.encoding)
 
-    reader = csv.reader(input_file, delimiter='\t')
-    writer = csv.writer(output_file, delimiter='\t')
+    reader = csv.reader(input_file, delimiter=args.delimiter)
+    writer = csv.writer(output_file, delimiter=args.delimiter)
     writer.writerow(['title', 'first sentence', 'defining phrases', 'defining words'])
 
     total_processed = 0
