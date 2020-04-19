@@ -35,9 +35,14 @@ def process_line(json_line, log_folder):
         }
 
     try:
-        shortened_entity['title'] = entity['sitelinks']['enwiki']['title']
+        shortened_entity['enwikititle'] = entity['sitelinks']['enwiki']['title']
     except KeyError:
-        shortened_entity['title'] = None
+        shortened_entity['enwikititle'] = None
+
+    try:
+        shortened_entity['enlabel'] = entity['labels']['en']['value']
+    except KeyError:
+        shortened_entity['enlabel'] = None
 
     if 'P31' in entity['claims']:
         for instance in entity['claims']['P31']:

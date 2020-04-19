@@ -19,9 +19,9 @@ if __name__=="__main__":
     inptsv = pd.read_csv(tsv_input_file, sep=args.delimiter)
 
     wikidata_new = wikidata.set_index('id')
-    mapping = wikidata_new['title']
+    mapping = wikidata_new['enlabel']
     
-    get_titles = lambda x: [mapping[i] if i in mapping.index else "UNKNOWN_ENTITY: %s" % i for i in x]
+    get_titles = lambda x: [(i, mapping[i]) if i in mapping.index else "UNKNOWN_ENTITY: %s" % i for i in x]
 
     wikidata['instanceoftitle'] = wikidata['instanceof'].apply(get_titles)
     wikidata['subclassoftitle'] = wikidata['subclassof'].apply(get_titles)
