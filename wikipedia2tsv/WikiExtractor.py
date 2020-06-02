@@ -150,7 +150,7 @@ options = SimpleNamespace(
 
     ##
     # Delimeter type for csv file
-    delimiter = '\t'
+    delimiter = '\t',
 
     ##
     # Whether to expand templates
@@ -639,11 +639,12 @@ class Extractor(object):
         text = compact(self.clean(text))
         # from zwChan
         text = self.get_first_sentence(text, self.title)
+        text = text.replace('?is', '? is').replace('?was', '? was')
         # text = [title_str] + text # TODO DELETE
 
         # if sum(len(line) for line in text) < options.min_text_length: # TODO DELETE
         #     return
-        if text: # EDITED (if there was no text) TODO CHECK 'Osamu Kudō' is empty
+        if text: # EDITED
             self.write_output(out, text)
         else:
             logging.warn("Article '%s' (%s): no text was extracted")
