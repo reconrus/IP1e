@@ -149,6 +149,10 @@ options = SimpleNamespace(
     # write_json = False, # TODO DELETE
 
     ##
+    # Delimeter type for csv file
+    delimiter = '\t'
+
+    ##
     # Whether to expand templates
     expand_templates = True,
 
@@ -562,7 +566,7 @@ class Extractor(object):
         """
         # url = get_url(self.id)
         url = get_url(self.title)
-        writer = csv.writer(out)
+        writer = csv.writer(out, delimiter='\t')
         writer.writerow([self.id, url, text])
 
     def get_first_sentence(self, text, title):
@@ -3143,6 +3147,8 @@ def main():
     groupO = parser.add_argument_group('Output')
     groupO.add_argument("-o", "--output", default="text",
                         help="directory for extracted files (or '-' for dumping to stdout)") # TODO change help (one file)
+    groupO.add_argument("-d", "--delimiter", default=options.delimiter,
+                        help="delimiter type for output")
     groupO.add_argument("-b", "--bytes", default="1M", # TODO delete since file_size does not matter anymore
                         help="maximum bytes per output file (default %(default)s)",
                         metavar="n[KMG]") # TODO DELETE
@@ -3208,6 +3214,7 @@ def main():
     options.keepLists = args.lists
     # options.toHTML = args.html # TODO DELETE
     options.write_json = args.json
+    options.delimiter = args.delimiter
     options.print_revision = args.revision
     options.min_text_length = args.min_text_length
     # if args.html:
